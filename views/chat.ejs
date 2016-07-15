@@ -1,0 +1,209 @@
+<%- contentFor('style') %>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    div.container { font: 13px Helvetica, Arial; margin-top: 70px;}
+    form { background: rgb(110, 224, 180);  padding: 3px; top: 0; width: 100%; }
+    form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+    form button { width: 9%; background: rgb(110, 224, 180); border: none; padding: 10px; }
+    form button:hover {cursor: pointer}
+    #messages { list-style-type: none; margin-top: 5%; padding: 0}
+    #messages li { padding: 30px; }
+    #messages li:nth-child(odd) { background: #eee; }
+    #messages li:nth-child(odd) textarea { background: #eee; }
+    ul li div:nth-child(1) { margin-top: -25px}
+    ul li div:nth-child(2) a { margin-top: -35px; margin-right: 10px}
+    ul li div:nth-child(2) select { margin-top: -25px}
+    ul li div:nth-child(3) { margin-top: -25px}
+    ul li div img { height: 40px; width: 40px;}
+
+</style>
+
+<%- contentFor('body') %>
+<div class="container">
+    <span>Hi, <strong><%= user.login%></strong> </span>
+    <form action="">
+        <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    <input id='more' class="btn btn-default btn-sm" type="button" value="Show more">
+    <input id='fewer' class="btn btn-default btn-sm" type="button" value="Show fewer">
+    <ul id="messages"></ul>
+</div>
+
+<%- contentFor('script') %>
+<script type="text/javascript" src="vendor/socket.io.js"></script>
+<script type="text/javascript" src="vendor/jquery-1.12.0.min.js"></script>
+<script>
+    var socket = io();
+    var messageLimit = 5;
+    var msg = {};
+
+    $('document').ready(function () {
+        socket.emit( 'initialization', {messageLimit: messageLimit, userId: "<%= user._id %>"} );
+
+        $('form').submit(function () {
+            if ($('#m').val() != '') {
+                msg.text = $('#m').val();
+                msg.author = {
+                    id: "<%= user._id %>",
+                    login: "<%= user.login %>",
+                    avatar: "<%= user.avatar %>"
+                };
+                socket.emit('chat message', msg)
+            };
+            $('#m').val('');
+            return false;
+        });
+
+        socket.on('chat message', function(data){
+            if ("<%= user._id %>" != data.userId)
+                return;
+
+            formMessageBlock(data.newMessage, "top");
+
+            if($('#messages li').length >  messageLimit ){
+                $('#messages li').last().remove();
+            }
+        });
+
+        socket.on('initialization', function(data){
+            if ("<%= user._id %>" != data.userId)
+                return;
+
+            messageLimit = data.messageLimit;
+            data.lastMessages.forEach(function(msg) {
+                formMessageBlock(msg, "bottom");
+            });
+        });
+
+        $('input#more').click(function(){
+            socket.emit('more', {messageLimit: messageLimit, userId: "<%= user._id %>"});
+        });
+
+        $('input#fewer').click(function(){
+            if (messageLimit <= 5)
+                return;
+            socket.emit('fewer', {messageLimit: messageLimit, userId: "<%= user._id %>"});
+        });
+
+        socket.on('clean', function(){
+            $('#messages').empty();
+            socket.removeAllListeners("getLikesNames");
+            socket.removeAllListeners("likeAdded");
+            socket.removeAllListeners("hideAnotherUser");
+
+        })
+
+        socket.on('disconnect', function(){
+            location.href = '/';
+        });
+    })
+
+    function formMessageBlock(msg, position){
+        var newLi = $('<li>');
+        var div1 = $('<div>').addClass('col-xs-2');
+        var div2 = $('<div>').addClass('col-xs-3');
+        var div3 = $('<div>').addClass('col-xs-7');
+
+        var img = $('<img>',{
+            'src': msg.author.avatar,
+            css: {'margin-right': '5px'}
+        });
+
+        var likeButton = $('<a>', {
+            'type': 'button',
+            'class': 'btn btn-success',
+            'html': "<span class='glyphicon glyphicon-thumbs-up'></span> Like"
+        });
+
+        var hideButton = $('<a>', {
+            'type': 'button',
+            'class': 'btn btn-danger btn-xs',
+            'html': "<span class='glyphicon glyphicon-remove'></span> Hide"
+        });
+        if ("<%= user._id %>" == msg.author.id){
+            $(hideButton).attr("disabled", true);
+        }
+
+        div1.append(img);
+        div1.append(hideButton);
+        div1.append($('<br>'));
+        div1.append($('<span>', {
+            'css': {'font-weight': 'bold'},
+        }).text(msg.author.login));
+
+
+
+        div2.append(likeButton);
+        if (msg.likes.indexOf("<%= user._id %>") != -1)
+            $(likeButton).attr("disabled", true);
+        var listOfLikes = $('<select>').attr("size", 3);
+        setNumberOfLikes(listOfLikes, 0);
+
+        socket.emit('getLikesNames', msg._id);
+        socket.on('getLikesNames', function(data){
+            if (data.messageId == msg._id) {
+                var num = 0;
+                data.names.forEach(function (name) {
+                    listOfLikes.append($('<option>').text(name));
+                    num++;
+                });
+                setNumberOfLikes(listOfLikes, num)
+            }
+        });
+        div2.append(listOfLikes);
+
+
+        var messageText = $('<textarea>', {
+            'text': msg.text,
+            'readonly': true,
+            'rows': 3,
+            'cols': 85,
+            css: {"resize": "none",
+                "border": "none"}
+        });
+        div3.append(messageText);
+
+        newLi.append(div1);
+        newLi.append(div2);
+        newLi.append(div3);
+
+        if (position == "top")
+            $('#messages').prepend(newLi);
+        else if (position == "bottom")
+            $('#messages').append(newLi);
+
+        $(likeButton).click(function(){
+            if (likeButton.attr("disabled") == "disabled"){
+                return;
+            }
+            socket.emit('addLike', {messageId: msg._id, userId: "<%= user._id %>"});
+            $(likeButton).attr("disabled", true);
+        })
+
+        socket.on("likeAdded", function(messageId){
+            if (messageId == msg._id) {
+                $(listOfLikes).children().remove(":not(:first-child)");
+                socket.emit('getLikesNames', msg._id);
+            }
+        });
+
+        $(hideButton).click(function(){
+            if ("<%= user._id %>" == msg.author.id){
+                return;
+            }
+            socket.emit('hideAnotherUser', {currentUserId: "<%= user._id %>", anotherUserId: msg.author.id});
+            $(hideButton).attr("disabled", true);
+        })
+    }
+
+    function setNumberOfLikes(listOfLikes, numberOfLikes){
+        if ($(listOfLikes).first())
+            $(listOfLikes).children().remove(":first-child");
+
+        $(listOfLikes).prepend($('<option>', {
+            'disabled': true,
+            'selected': true,
+            'text': " Users who liked ("+numberOfLikes+")"
+        }));
+    }
+</script>

@@ -1,0 +1,79 @@
+<script src="vendor/socket.io.js"></script>
+<script src="vendor/jquery-1.12.0.min.js"></script>
+
+<style>
+	#avatar {width: 300px; height: 300px}
+	#stats {margin-top: 23%}
+</style>
+
+<script>
+	var socket = io();
+
+	$('document').ready(function () {
+
+		socket.on('disconnection', function () {
+			location.href = '/';
+		});
+
+		socket.emit("getStats", "<%= user._id%>");
+		socket.on("getStats", function(stats){
+			if (stats.total == 0){
+				$("#stats td").text(0);
+			} else
+			stats.results.forEach(function(stat){
+				if(stat._id == "get0-4")
+					$("#td1").text((100 * stat.value / stats.total).toFixed(0));
+				if(stat._id == "get4-8")
+					$("#td2").text((100 * stat.value / stats.total).toFixed(0));
+				if(stat._id == "get8-16")
+					$("#td3").text((100 * stat.value / stats.total).toFixed(0));
+				if(stat._id == "get16-24")
+					$("#td4").text((100 * stat.value / stats.total).toFixed(0));
+			})
+		})
+	})
+
+</script>
+
+
+<div class="container">
+
+	<div class="page-header text-center">
+		<h1><span class="fa fa-user"></span><strong>login</strong>: <%= user.login %><br></h1>
+	</div>
+	<hr>
+	<div class="" align="center">
+		<div class="col-sm-6">
+			<span class="fa fa-camera-retro fa-3x"></span><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Your current avatar: </strong>
+			<br><br>
+			<img id="avatar" src="<%= user.avatar%>", class="img-thumbnail">
+		</div>
+		<div class="col-sm-6">
+			<form method="post" action="/addimage" enctype="multipart/form-data">
+
+						<label class="control-label">Select image</label>
+						<input id="input-1" class="file" name="avatar" type="file" accept="image/*" />
+				<br>
+				<input class="btn btn-default btn-sm" type="submit" value="Send">
+			</form>
+			<table id="stats" class="table table-striped">
+				<thead>
+					<th>0 - 4 o`clock (messages, %)</th>
+					<th>4 - 8 o`clock (messages, %)</th>
+					<th>8 - 16 o`clock (messages, %)</th>
+					<th>16 - 24 o`clock (messages, %)</th>
+				</thead>
+				<tbody>
+					<tr>
+						<td align="center" id="td1"></td>
+						<td align="center" id="td2"></td>
+						<td align="center" id="td3"></td>
+						<td align="center" id="td4"></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+</div>
+

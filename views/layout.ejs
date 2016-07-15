@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Newsfeed</title>
+    <link rel="stylesheet" href="vendor/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css">
+    <link rel="icon" type="image/png" href="/images/favicon.png"/>
+    <%- script %>
+    <%- style %>
+  </head>
+
+  
+  <body class="container">
+    
+    <nav class="navbar navbar-default ">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/chat">
+            <img style="max-width:60px; margin-top: -15px; float: left;" src="/images/1.png">  <span>&nbsp;&nbsp;&nbsp;Newsfeed</span> </a>
+        </div>
+        <div>
+          <ul class="nav navbar-nav">
+            <li><a href="/login">Log in</a></li>
+            <li><a href="/signup">Sign up</a></li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="/ratings">Ratings</a></li>
+            <li><a href="/profile">Profile</a></li>
+            <li><a href="/logout">Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+  <body>
+   <%- body %>
+
+  </body>
+</html>
